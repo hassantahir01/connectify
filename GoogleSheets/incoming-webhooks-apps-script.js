@@ -627,8 +627,12 @@ function doPost(e) {
             case "draft_orders/delete":
                 return delObjectRows(postData.id, 'draft_orders');
                 break;
-
-
+            case "disputes/create":
+                return addDispute(postData);
+                break;
+            case "disputes/update":
+                return updateDispute(postData);
+                break;
             case "collections/create":
                 return addCollection(postData);
                 break;
@@ -1966,6 +1970,60 @@ function updateCheckouts(postData) {
         if (!foundRowInSheet) return addCheckouts(postData);
         return ContentService.createTextOutput("checkout rows updated successfully.");
 
+    } catch (err) {
+        return ContentService.createTextOutput(err.message);
+    }
+
+}
+
+function addDispute(postData) {
+    try {
+        const INDEXED_SHEET_FIELDS = {
+            "1": "id", "2": "order_id", "3": "type", "4": "amount",
+            "5": "currency", "6": "reason", "7": "network_reason_code", "8": "status",
+            "9": "evidence_due_by", "10": "evidence_sent_on", "11": "finalized_on", "12": "initiated_at"
+        };
+        var sheet = getSheetByName('disputes');
+        if (!sheet) return ContentService.createTextOutput("No sheet having name 'disputes' found in spreadsheet.");
+        var lastRow = Math.max(sheet.getLastRow(), 1);
+        var newRow = lastRow + 1;
+        sheet.insertRowAfter(lastRow);
+        for (var key in INDEXED_SHEET_FIELDS) {
+            let value = INDEXED_SHEET_FIELDS[key];
+            sheet.getRange(newRow, key).setValue(postData[value]);
+        }
+        return ContentService.createTextOutput("Dispute row added successfully.");
+    } catch (err) {
+        return ContentService.createTextOutput(err.message);
+    }
+}
+function updateDispute(postData) {
+
+    try {
+        const INDEXED_SHEET_FIELDS = {
+            "1": "id", "2": "order_id", "3": "type", "4": "amount",
+            "5": "currency", "6": "reason", "7": "network_reason_code", "8": "status",
+            "9": "evidence_due_by", "10": "evidence_sent_on", "11": "finalized_on", "12": "initiated_at"
+        };
+        var sheet = getSheetByName('disputes');
+        if (!sheet) return ContentService.createTextOutput("No sheet having name 'disputes' found in spreadsheet.");
+        var data = sheet.getDataRange().getValues();
+        var foundRowInSheet = false;
+
+        for (var i = 1; i <= data.length; i++) {
+            var  currentSheetRow = data[i];
+            if (typeof currentSheetRow !== 'undefined' && currentSheetRow[0] == postData.id) {
+                foundRowInSheet = true;
+                //exclude header row
+                var newRow = i + 1;
+                for (var key in INDEXED_SHEET_FIELDS) {
+                    let value = INDEXED_SHEET_FIELDS[key];
+                    sheet.getRange(newRow, key).setValue(postData[value]);
+                }
+                return ContentService.createTextOutput("Dispute updated successfully.");
+            }
+        }
+        if (!foundRowInSheet) return addDispute(postData);
     } catch (err) {
         return ContentService.createTextOutput(err.message);
     }
